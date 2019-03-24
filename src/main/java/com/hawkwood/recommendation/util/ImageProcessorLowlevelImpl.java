@@ -1,30 +1,31 @@
 package com.hawkwood.recommendation.util;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections4.map.LRUMap;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfInt;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.springframework.stereotype.Component;
-
 @Component
 public class ImageProcessorLowlevelImpl implements ImageProcessor{
 	
 	private Map<String,Mat> matmap;
 	private Map<String,Mat[]> HSVmap;
+	private Map<String,Mat[]> TextureMap;
 	public ImageProcessorLowlevelImpl(int cacheSize) {
 		matmap = new LRUMap<String, Mat>(cacheSize);
 	}
 	public ImageProcessorLowlevelImpl() {
 		matmap = new LRUMap<String, Mat>(500);
 		HSVmap = new LRUMap<String, Mat[]>(500);
+		TextureMap = new LRUMap<String, Mat[]>(500);
 	}
 	private Mat readImage(String filename) {
 		Mat image = Imgcodecs.imread(filename);
@@ -32,50 +33,39 @@ public class ImageProcessorLowlevelImpl implements ImageProcessor{
 		return image;
 	}
 	
-	@SuppressWarnings("unchecked")
-	private Mat[] calculateHSV(Mat image, String name){
+	private Mat[] calculateHSVandTexture(Mat image, String name){
 		
 	    Imgproc.cvtColor(image, image, Imgproc.COLOR_RGB2HSV);
 
 	    List<Mat> hsv_planes = new ArrayList<Mat>();
 	    Core.split(image, hsv_planes);
+	    int hBins = 10;
+	    int sBins = 10;
+	    MatOfInt histSize = new MatOfInt(hBins, sBins);
 
-	    MatOfInt histSize = new MatOfInt(256);
-
-	    final MatOfFloat histRange = new MatOfFloat(0f, 256f);
+	    final MatOfFloat histRange = new MatOfFloat(0f, 180f, 0, 256f);
 
 	    boolean accumulate = false;
 
-	    Mat h_hist = new Mat();
-	    Mat s_hist = new Mat();
-	    Mat v_hist = new Mat();
+	    Mat hs_hist = new Mat();
+
 
 	    //error appear in the following sentences
-        List<Mat> hList = new ArrayList<Mat>();
-        hList.add(hsv_planes.get(0));
-        List<Mat> sList = new ArrayList<Mat>();
-        sList.add(hsv_planes.get(1));
-        List<Mat> vList = new ArrayList<Mat>();
-        vList.add(hsv_planes.get(2));
-	    Imgproc.calcHist(hList, new MatOfInt(0), new Mat(), h_hist, histSize, histRange, accumulate);
-	    Imgproc.calcHist(sList, new MatOfInt(0), new Mat(), s_hist, histSize, histRange, accumulate);
-	    Imgproc.calcHist(vList, new MatOfInt(0), new Mat(), v_hist, histSize, histRange, accumulate);
 
-	    int hist_w = 512;
-	    int hist_h = 600;
-	    //bin_w = Math.round((double) (hist_w / 256));
+	    Imgproc.calcHist(hsv_planes, new MatOfInt(0, 1), new Mat(), hs_hist, histSize, histRange, accumulate);
 
-	    Mat histImage = new Mat(hist_h, hist_w, CvType.CV_8UC1);
-	    Core.normalize(h_hist, h_hist, 3, histImage.rows(), Core.NORM_MINMAX);
-	    Core.normalize(s_hist, s_hist, 3, histImage.rows(), Core.NORM_MINMAX);
-	    Core.normalize(v_hist, v_hist, 3, histImage.rows(), Core.NORM_MINMAX);
-	    Mat[] result = new Mat[]{h_hist, s_hist, v_hist} ;
+	    Core.normalize(hs_hist, hs_hist, 0, hBins*sBins, Core.NORM_MINMAX);
+	    Mat[] result = new Mat[]{hs_hist} ;
+	    float[] hs_histData = new float[(int) (hs_hist.total() * hs_hist.channels())];
+	    hs_hist.get(0, 0, hs_histData);
+	    for(int i=0;i<hs_histData.length;i++) System.out.println(hs_histData[i]);
 	    HSVmap.put(name, result);
+	    TextureMap.put(name, result);
 		return result;
 
     }
 
-	private Double[] compareHSV(Mat[] hist1, Mat[] hist2, int method){
+	private Double[] compareHSVorTexture(Mat[] hist1, Mat[] hist2, int method){
 		if(hist1.length != hist2.length) throw new RuntimeException("input are not in same HSV space size");
 		Double[] result = new Double[hist1.length];
 		for(int i=0;i<result.length;++i)
@@ -91,19 +81,44 @@ public class ImageProcessorLowlevelImpl implements ImageProcessor{
 	//CV_COMP_INTERSECT Intersection 2
 	//CV_COMP_BHATTACHARYYA Bhattacharyya distance 3
 	//CV_COMP_HELLINGER Synonym for CV_COMP_BHATTACHARYYA 4
-	public List<Double> getfeaturesComparsion(String img1, String img2, int HSVmethod) {
+	public List<List<Double>> getfeaturesComparsion(String img1, String img2, int HSVmethod) {
 		// TODO Auto-generated method stub
-		List<Double> comparsionvector= new ArrayList<Double>();
+		List<List<Double>> comparsionResult = new ArrayList<List<Double>>();
 		try {
+			List<Double> comparsionvector= new ArrayList<Double>();
 			Mat image1 = matmap.getOrDefault(img1, readImage(img1));
 			Mat image2 = matmap.getOrDefault(img2, readImage(img2));
-			Double[] hsvComparsion = compareHSV(HSVmap.getOrDefault(img1, calculateHSV(image1, img1)), 
-												HSVmap.getOrDefault(img2, calculateHSV(image2, img2)),
+			Double[] hsvComparsion = compareHSVorTexture(HSVmap.getOrDefault(img1, calculateHSVandTexture(image1, img1)), 
+												HSVmap.getOrDefault(img2, calculateHSVandTexture(image2, img2)),
 												HSVmethod);
 			for(int i=0;i<hsvComparsion.length;i++) comparsionvector.add(hsvComparsion[i]);
+			comparsionResult.add(comparsionvector);
 		}catch (Exception e) {
 		    e.printStackTrace();
 		}
-		return comparsionvector;
+		try {
+			List<Double> comparsionvector= new ArrayList<Double>();
+			Mat image1 = matmap.getOrDefault(img1, readImage(img1));
+			Mat image2 = matmap.getOrDefault(img2, readImage(img2));
+			Double[] TextureComparsion = compareHSVorTexture(HSVmap.getOrDefault(img1, calculateHSVandTexture(image1, img1)), 
+					HSVmap.getOrDefault(img2, calculateHSVandTexture(image2, img2)),
+				    1);
+			for(int i=0;i<TextureComparsion.length;i++) comparsionvector.add(TextureComparsion[i]);
+			comparsionResult.add(comparsionvector);
+		}catch (Exception e) {
+		    e.printStackTrace();
+		}
+		return comparsionResult;
+	}
+
+	public List<String> imageNames(String pathStr){
+	    File path = new File(pathStr);  
+	    File[] fileArr = path.listFiles();
+	    List<String> names = new ArrayList<String>();
+        for(int i=0;i<fileArr.length;i++) {
+        	if(fileArr[i].getName().endsWith("png"))
+        		names.add(fileArr[i].toString());
+        }
+		return names;
 	}
 }

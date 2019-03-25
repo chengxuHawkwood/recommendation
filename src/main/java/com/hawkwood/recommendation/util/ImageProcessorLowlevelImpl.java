@@ -1,9 +1,11 @@
 package com.hawkwood.recommendation.util;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import org.apache.commons.collections4.map.LRUMap;
 import org.opencv.core.Core;
@@ -13,12 +15,23 @@ import org.opencv.core.MatOfInt;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.springframework.stereotype.Component;
+
+import smile.math.DoubleArrayList;
 @Component
 public class ImageProcessorLowlevelImpl implements ImageProcessor{
 	
 	private Map<String,Mat> matmap;
 	private Map<String,Mat[]> HSVmap;
 	private Map<String,Mat[]> TextureMap;
+	public double[] getHSVfeatures(String img1) {
+		Mat image1 = matmap.getOrDefault(img1, readImage(img1));
+		Mat[] hsv= HSVmap.getOrDefault(img1, calculateHSVandTexture(image1, img1));
+		float[] result = new float[(int) (hsv[0].total() * hsv[0].channels())];
+		hsv[0].get(0, 0, result);
+		double[] transedresult = IntStream.range(0, result.length).mapToDouble(i -> result[i]).toArray();
+		return transedresult;
+		
+	}
 	public ImageProcessorLowlevelImpl(int cacheSize) {
 		matmap = new LRUMap<String, Mat>(cacheSize);
 	}
@@ -58,7 +71,6 @@ public class ImageProcessorLowlevelImpl implements ImageProcessor{
 	    Mat[] result = new Mat[]{hs_hist} ;
 	    float[] hs_histData = new float[(int) (hs_hist.total() * hs_hist.channels())];
 	    hs_hist.get(0, 0, hs_histData);
-	    for(int i=0;i<hs_histData.length;i++) System.out.println(hs_histData[i]);
 	    HSVmap.put(name, result);
 	    TextureMap.put(name, result);
 		return result;

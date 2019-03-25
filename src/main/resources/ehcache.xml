@@ -16,7 +16,7 @@
           memoryStoreEvictionPolicy="LRU"/>
 
   <!-- employees缓存 -->
-  <cache name="employeescache"
+  <cache name="indexNodescache"
          maxElementsInMemory="1000"
          eternal="false"
          timeToIdleSeconds="5"

@@ -1,23 +1,28 @@
 package com.hawkwood.recommendation.util;
 
+import java.io.File;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hawkwood.recommendation.dao.IndexNodeDao;
 import com.hawkwood.recommendation.entity.IndexNode;
 
 import smile.clustering.KMeans;
 
-@Service
+@Component
 public class HSVBinaryTreeImpl implements TreeBuilder {
 	@Autowired
 	ImageProcessor imageProcessor;
 	@Autowired
 	IndexNodeDao indexNodeDao;
-
+	Map<Integer, Integer> level;
 	public void BuildTree(String path){
+	 level = new HashMap<Integer, Integer>();
 	 List<String> names = imageProcessor.imageNames(path);
 	 double[] testsizeInput = imageProcessor.getHSVfeatures(names.get(0));
 	 double[][] input = new double[names.size()][testsizeInput.length];
@@ -26,20 +31,38 @@ public class HSVBinaryTreeImpl implements TreeBuilder {
 		 input[i] = imageProcessor.getHSVfeatures(names.get(i));
 		 inputnames[i] = names.get(i); 
 	 }
-	 build(1, input, inputnames, null);
+
+		build("1.1", input, inputnames, null);
+
 	 
 	}
 
-	private void build(int val, double[][] input, String[] names, double[] centroids) {
+	private void build(String val, double[][] input, String[] names, double[] centroids) {
+		if(names.length<3) return;
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			mapper.writeValue(new File("./resource/"+String.valueOf(val)+".centroids"), centroids);
+			mapper.writeValue(new File("./resource/"+String.valueOf(val)+".names"), names);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		String features = "";
-		if(centroids.length!=0) {
+		if(centroids!=null && centroids.length!=0) {
 			for(int i=0;i<centroids.length;i++)
 				features = features+" "+centroids[i];
 		}
-		indexNodeDao.saveIndexNode(new IndexNode(val, features, String.join("  ", names)));
-		if(input.length==1) {
+		int levelnumber1 = level.getOrDefault(Integer.parseInt(val.split("\\.")[0])+1, 0)+1;
+		level.put(Integer.parseInt(val.split("\\.")[0])+1, levelnumber1);
+		int levelnumber2 = level.getOrDefault(Integer.parseInt(val.split("\\.")[0])+1, 0)+1;
+		level.put(Integer.parseInt(val.split("\\.")[0])+1, levelnumber2);
+		indexNodeDao.saveIndexNode(new IndexNode(val, "./resource/"+String.valueOf(val)+".centroids", "./resource/"+String.valueOf(val)+".names", names.length, 
+									String.valueOf(Integer.parseInt(val.split("\\.")[0])+1)+"."+levelnumber1, 
+									String.valueOf(Integer.parseInt(val.split("\\.")[0])+1)+"."+levelnumber2));
+		if(input.length<=3) {
 			return;
 		}
+		System.out.print(input.length+" "+input);
 		KMeans kMeans = new KMeans(input, 2);
 		double[][] leftinput = new double[kMeans.getClusterSize()[0]][input[0].length];
 		String[] leftnames = new String[kMeans.getClusterSize()[0]];
@@ -59,10 +82,14 @@ public class HSVBinaryTreeImpl implements TreeBuilder {
 				index2++;
 			}			
 		}
-	
 		input = null;
 		names = null;
-		build(2*val,rightinput, rightnames, kMeans.centroids()[0]);
-		build(2*val+1, leftinput, leftnames, kMeans.centroids()[1]);
+		centroids = null;
+		double[] leftcen = kMeans.centroids()[0];
+		double[] rightcen = kMeans.centroids()[1];
+		kMeans = null;
+		build(String.valueOf(Integer.parseInt(val.split("\\.")[0])+1)+"."+levelnumber1,rightinput, rightnames, leftcen);
+		leftcen = null;
+		build(String.valueOf(Integer.parseInt(val.split("\\.")[0])+1)+"."+levelnumber2, leftinput, leftnames, rightcen);
 	}
 }

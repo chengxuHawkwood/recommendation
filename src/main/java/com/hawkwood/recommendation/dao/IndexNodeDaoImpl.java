@@ -1,6 +1,6 @@
 package com.hawkwood.recommendation.dao;
 
-import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 
 import org.hibernate.Session;
@@ -15,17 +15,17 @@ import com.hawkwood.recommendation.entity.IndexNode;
 @Repository
 public class IndexNodeDaoImpl implements IndexNodeDao {
 	@Autowired
-	private EntityManagerFactory  entityManagerFactory;
+	private EntityManager  entityManager;
 	SessionFactory sessionFactory;
 	@Transactional
 	public void saveIndexNode(IndexNode indexNode) {
-		Session session  = entityManagerFactory.unwrap(Session.class);
+		Session session  = entityManager.unwrap(Session.class);
 		session.save(indexNode);
 	}
 	@Transactional
 	@Cacheable(value = "indexNodescache")
 	public IndexNode findById(int id) {
-		Session session  = entityManagerFactory.unwrap(Session.class);
+		Session session  = entityManager.unwrap(Session.class);
 		return session.load(IndexNode.class, id);
 	}
 }

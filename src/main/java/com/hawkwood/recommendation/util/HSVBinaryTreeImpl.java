@@ -5,8 +5,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+import org.apache.commons.collections4.map.LRUMap;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hawkwood.recommendation.dao.IndexNodeDao;
@@ -14,29 +16,82 @@ import com.hawkwood.recommendation.entity.IndexNode;
 
 import smile.clustering.KMeans;
 
-@Component
+@Service
 public class HSVBinaryTreeImpl implements TreeBuilder {
 	@Autowired
 	ImageProcessor imageProcessor;
 	@Autowired
 	IndexNodeDao indexNodeDao;
-	Map<Integer, Integer> level;
+	Map<Integer, Integer> level = new HashMap<>();
+	LRUMap<String, double[]> centroids = new LRUMap<>();
+	ThreadLocal<double[]> HSVfeatures = new ThreadLocal<>();
 	public void BuildTree(String path){
-	 level = new HashMap<Integer, Integer>();
-	 List<String> names = imageProcessor.imageNames(path);
-	 double[] testsizeInput = imageProcessor.getHSVfeatures(names.get(0));
-	 double[][] input = new double[names.size()][testsizeInput.length];
-	 String[] inputnames = new String[names.size()];
-	 for(int i=0;i<names.size();i++) {
-		 input[i] = imageProcessor.getHSVfeatures(names.get(i));
-		 inputnames[i] = names.get(i); 
-	 }
-
-		build("1.1", input, inputnames, null);
-
-	 
+		 level = new HashMap<Integer, Integer>();
+		 List<String> names = imageProcessor.imageNames(path);
+		 double[] testsizeInput = imageProcessor.getHSVfeatures(names.get(0));
+		 double[][] input = new double[names.size()][testsizeInput.length];
+		 String[] inputnames = new String[names.size()];
+		 for(int i=0;i<names.size();i++) {
+			 input[i] = imageProcessor.getHSVfeatures(names.get(i));
+			 inputnames[i] = names.get(i); 
+		 }
+		 build("1.1", input, inputnames, null);
 	}
-
+	//true =left false=right
+	
+	boolean LeftBigger(double[] left, double[] right) {
+		double leftL2 = 0, rightL2 =0 ;
+		for(int i=0;i<left.length;i++) {
+			leftL2 = Math.pow(left[i]-HSVfeatures.get()[i], 2);
+			rightL2 = Math.pow(right[i]-HSVfeatures.get()[i], 2);;
+		}
+		if(leftL2<rightL2) return false;
+		else return true;
+				
+	}
+	
+	
+	//to search query(1.1, number, path, null)
+	public String QueryPictures(String id, int number, String querypath, double[] query) {
+		if(query == null) 
+			query = imageProcessor.getHSVfeatures(querypath);
+			
+		IndexNode indexNode = indexNodeDao.findById(id);
+		if(indexNode.getSize()<=2*number) return indexNode.getImagenames();
+		IndexNode left =indexNodeDao.findById(indexNode.getLeftchild());
+		IndexNode right = indexNodeDao.findById(indexNode.getRightchild());
+		String leftcenname = left.getHsvfeatures();
+		String rightcenname = right.getHsvfeatures();
+		try {
+			if(HSVfeatures.get()==null) 		
+				HSVfeatures.set(query);
+			double[] leftcen = null;
+			double[] rightcen = null;
+			ObjectMapper mapper = new ObjectMapper();
+			if(centroids.containsKey(left.getId())){
+				leftcen =centroids.get(left.getId());
+			}else {
+				File leftjson = new File(leftcenname);
+				leftcen = mapper.readValue(leftjson, double[].class);
+			}
+			if(centroids.containsKey(right.getId())){
+				rightcen =centroids.get(right.getId());
+			}else {
+				File rightjson = new File(rightcenname);
+				rightcen = mapper.readValue(rightjson, double[].class);
+			}			
+			if(LeftBigger(leftcen, rightcen)) {
+				return QueryPictures(left.getId(), number, querypath, query);
+			}else {
+				return QueryPictures(right.getId(),  number, querypath,  query);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally {
+			HSVfeatures.remove();
+		}
+		return indexNode.getImagenames();
+	} 
 	private void build(String val, double[][] input, String[] names, double[] centroids) {
 		if(names.length<3) return;
 		ObjectMapper mapper = new ObjectMapper();

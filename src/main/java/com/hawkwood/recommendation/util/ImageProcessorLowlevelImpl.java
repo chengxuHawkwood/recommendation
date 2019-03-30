@@ -15,9 +15,10 @@ import org.opencv.core.MatOfInt;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import smile.math.DoubleArrayList;
-@Component
+@Service
 public class ImageProcessorLowlevelImpl implements ImageProcessor{
 	
 	private Map<String,Mat> matmap;

@@ -24,7 +24,7 @@ public class IndexNodeDaoImpl implements IndexNodeDao {
 	}
 	@Transactional
 	@Cacheable(value = "indexNodescache")
-	public IndexNode findById(int id) {
+	public IndexNode findById(String id) {
 		Session session  = entityManager.unwrap(Session.class);
 		return session.load(IndexNode.class, id);
 	}

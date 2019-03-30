@@ -23,6 +23,7 @@ public class IndexNode {
 	private String leftchild;
 	@Column(name = "rightchild")
 	private String rightchild;
+	
 	public String getLeftchild() {
 		return leftchild;
 	}
@@ -60,6 +61,7 @@ public class IndexNode {
 	public void setImagenames(String imagenames) {
 		this.imagenames = imagenames;
 	}
+	public IndexNode() {}
 	public IndexNode(String val,  String hsvfeatures, String imagenames, int size, String leftchild, String rightchild) {
 		super();
 		this.id = val;

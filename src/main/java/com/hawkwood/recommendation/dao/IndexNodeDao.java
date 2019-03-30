@@ -5,5 +5,5 @@ import com.hawkwood.recommendation.entity.IndexNode;
 public interface IndexNodeDao {
 
 	public void saveIndexNode(IndexNode indexNode);
-	public IndexNode findById(int id);
+	public IndexNode findById(String id);
 }

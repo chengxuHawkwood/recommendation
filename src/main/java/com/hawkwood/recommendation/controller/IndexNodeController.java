@@ -19,12 +19,15 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hawkwood.recommendation.util.HSVBinaryTreeImpl;
 import com.hawkwood.recommendation.util.ImageProcessor;
+import com.hawkwood.recommendation.util.SiftBinaryTreeImpl;
 
 
 @Controller
 public class IndexNodeController {
 	@Autowired
 	HSVBinaryTreeImpl HSVBinaryTreeImpl;
+	@Autowired
+	SiftBinaryTreeImpl SiftBinaryTreeImpl;
 	@Autowired
 	ImageProcessor ImageProcessor;
 	@RequestMapping("/")
@@ -51,11 +54,33 @@ public class IndexNodeController {
 		return "contour";
 	}
 
+	@RequestMapping("/querycontour")
+	public String querycontour(@RequestParam(name="path") String path, Model theModel){
+		String namepath = SiftBinaryTreeImpl.QueryPictures("1.1", 8, path.replace("/images","/Users/hawkwood/Downloads/style-color-images"), null);
+		ObjectMapper objectMapper = new ObjectMapper();
+		try {
+			String[] names = objectMapper.readValue(new File(namepath), String[].class);
+			for (int i=0;i<names.length;i++) {
+				names[i] = names[i].replace("/Users/hawkwood/Downloads/style-color-images", "/images");
+			} 
+			theModel.addAttribute("names",names);
+		} catch (JsonParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return "querycontour";
+	}
+	
+	
 	@RequestMapping("/query")
 	public String query(@RequestParam(name="path") String path, Model theModel){
-		System.out.println("path"+path);
-		String namepath = HSVBinaryTreeImpl.QueryPictures("1.1", 10, path.replace("/images","/Users/hawkwood/Downloads/style-color-images"), null);
-		System.out.println(namepath);
+		String namepath = HSVBinaryTreeImpl.QueryPictures("1.1", 8, path.replace("/images","/Users/hawkwood/Downloads/style-color-images"), null);
 		ObjectMapper objectMapper = new ObjectMapper();
 		try {
 			String[] names = objectMapper.readValue(new File(namepath), String[].class);

@@ -7,31 +7,68 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
+import javax.persistence.criteria.From;
+
 import org.apache.commons.collections4.map.LRUMap;
+import org.hibernate.dialect.identity.Ingres10IdentityColumnSupport;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfInt;
+import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.xfeatures2d.SIFT;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import smile.math.DoubleArrayList;
+import weka.filters.unsupervised.attribute.Normalize;
 @Service
 public class ImageProcessorLowlevelImpl implements ImageProcessor{
 	
 	private Map<String,Mat> matmap;
 	private Map<String,Mat[]> HSVmap;
 	private Map<String,Mat[]> TextureMap;
-	public double[] getHSVfeatures(String img1) {
+    int hBins = 20;
+    int sBins = 20;
+	private double[] max = new double[hBins*sBins];
+	private double[] min = new double[hBins*sBins];
+	
+	public double[] getContourfeatures(String img1){
+		Mat image1 = matmap.getOrDefault(img1, readImage(img1));
+		Imgproc.resize(image1, image1, new Size(32,32));
+		Imgproc.cvtColor(image1, image1, Imgproc.COLOR_RGB2GRAY);
+	    Mat desc = new Mat();
+	    MatOfKeyPoint keypoints = new MatOfKeyPoint();
+	    SIFT.create().detectAndCompute(image1, new Mat(), keypoints, desc);
+	    desc.convertTo(desc, CvType.CV_64F);
+	    double[] result = new double[10000];
+	    try {
+		    desc.reshape(-1, 1);
+		    desc.get(0, 0, result);
+	    }catch (Exception e) {
+			// TODO: handle exception
+		}
+		return result;
+
+	}
+	
+ 	public double[] getHSVfeatures(String img1) {
 		Mat image1 = matmap.getOrDefault(img1, readImage(img1));
 		Mat[] hsv= HSVmap.getOrDefault(img1, calculateHSVandTexture(image1, img1));
 		float[] result = new float[(int) (hsv[0].total() * hsv[0].channels())];
 		hsv[0].get(0, 0, result);
-		double[] transedresult = IntStream.range(0, result.length).mapToDouble(i -> result[i]).toArray();
-		return transedresult;
-		
+		double[] transedresult = new double[result.length]; 
+		for(int i=0;i<result.length;i++)  transedresult[i] = ((double) result[i]);
+		return normalize(transedresult);
+	}
+	public double[] normalize(double[] input) {
+		double[] output = new double[hBins*sBins];
+		for(int i=0;i<input.length;i++) output[i] = (input[i]-min[i])/(max[i]-min[i]);
+		return output;
 	}
 	public ImageProcessorLowlevelImpl(int cacheSize) {
 		matmap = new LRUMap<String, Mat>(cacheSize);
@@ -40,6 +77,18 @@ public class ImageProcessorLowlevelImpl implements ImageProcessor{
 		matmap = new LRUMap<String, Mat>(500);
 		HSVmap = new LRUMap<String, Mat[]>(500);
 		TextureMap = new LRUMap<String, Mat[]>(500);
+		for(int i=0;i<min.length;i++) min[i] = Integer.MAX_VALUE;
+		List<String> names = imageNames("/Users/hawkwood/Downloads/style-color-images/style/");
+		for(String name:names) {
+			Mat image1 = readImage(name);
+			Mat[] hsv= calculateHSVandTexture(image1, name);
+			float[] result = new float[(int) (hsv[0].total() * hsv[0].channels())];
+			hsv[0].get(0, 0, result);
+			for(int i=0;i<result.length;i++) {
+				max[i] = Math.max(max[i], result[i]);
+				min[i] = Math.min(min[i], result[i]);
+			}
+		}
 	}
 	private Mat readImage(String filename) {
 		Mat image = Imgcodecs.imread(filename);
@@ -53,8 +102,6 @@ public class ImageProcessorLowlevelImpl implements ImageProcessor{
 
 	    List<Mat> hsv_planes = new ArrayList<Mat>();
 	    Core.split(image, hsv_planes);
-	    int hBins = 10;
-	    int sBins = 10;
 	    MatOfInt histSize = new MatOfInt(hBins, sBins);
 
 	    final MatOfFloat histRange = new MatOfFloat(0f, 180f, 0, 256f);
@@ -67,8 +114,8 @@ public class ImageProcessorLowlevelImpl implements ImageProcessor{
 	    //error appear in the following sentences
 
 	    Imgproc.calcHist(hsv_planes, new MatOfInt(0, 1), new Mat(), hs_hist, histSize, histRange, accumulate);
-
-	    Core.normalize(hs_hist, hs_hist, 0, hBins*sBins, Core.NORM_MINMAX);
+//
+//	    Core.normalize(hs_hist, hs_hist, 0, hBins*sBins, Core.NORM_MINMAX);
 	    Mat[] result = new Mat[]{hs_hist} ;
 	    float[] hs_histData = new float[(int) (hs_hist.total() * hs_hist.channels())];
 	    hs_hist.get(0, 0, hs_histData);

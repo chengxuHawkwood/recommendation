@@ -5,37 +5,34 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 import org.apache.commons.collections4.map.LRUMap;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hawkwood.recommendation.dao.IndexNodeDao;
+import com.hawkwood.recommendation.dao.SiftIndexNodeDao;
+import com.hawkwood.recommendation.dao.SiftIndexNodeDaoImpl;
 import com.hawkwood.recommendation.entity.IndexNode;
+import com.hawkwood.recommendation.entity.SiftNode;
 
 import smile.clustering.KMeans;
-import smile.math.DoubleArrayList;
-
 @Service
-public class HSVBinaryTreeImpl implements TreeBuilder {
+public class SiftBinaryTreeImpl implements TreeBuilder{
 	@Autowired
 	ImageProcessor imageProcessor;
 	@Autowired
-	@Qualifier("indexNodeDaoImpl")
-	IndexNodeDao indexNodeDao;
+	SiftIndexNodeDao siftIndexNodeDao;
 	Map<Integer, Integer> level = new HashMap<>();
 	LRUMap<String, double[]> centroids = new LRUMap<>();
-	ThreadLocal<double[]> HSVfeatures = new ThreadLocal<>();
+	ThreadLocal<double[]> features = new ThreadLocal<>();
 	public void BuildTree(String path){
 		 level = new HashMap<Integer, Integer>();
 		 List<String> names = imageProcessor.imageNames(path);
-		 double[] testsizeInput = imageProcessor.getHSVfeatures(names.get(0));
+		 double[] testsizeInput = imageProcessor.getContourfeatures(names.get(0));
 		 double[][] input = new double[names.size()][testsizeInput.length];
 		 String[] inputnames = new String[names.size()];
 		 for(int i=0;i<names.size();i++) {
-			 input[i] = imageProcessor.getHSVfeatures(names.get(i));
+			 input[i] = imageProcessor.getContourfeatures(names.get(i));
 			 inputnames[i] = names.get(i); 
 		 }
 		 build("1.1", input, inputnames, null);
@@ -45,8 +42,8 @@ public class HSVBinaryTreeImpl implements TreeBuilder {
 	boolean LeftBigger(double[] left, double[] right) {
 		double leftL2 = 0, rightL2 =0 ;
 		for(int i=0;i<left.length;i++) {
-			leftL2 = Math.pow(left[i]-HSVfeatures.get()[i], 2);
-			rightL2 = Math.pow(right[i]-HSVfeatures.get()[i], 2);
+			leftL2 = Math.pow(left[i]-features.get()[i], 2);
+			rightL2 = Math.pow(right[i]-features.get()[i], 2);
 		}
 		double d=0;
 		if(leftL2>rightL2) return true;
@@ -58,15 +55,15 @@ public class HSVBinaryTreeImpl implements TreeBuilder {
 	//to search query(1.1, number, path, null)
 	public String QueryPictures(String id, int number, String querypath, double[] query) {
 		if(query == null) { 
-			query = imageProcessor.getHSVfeatures(querypath);
-			HSVfeatures.set(query);
+			query = imageProcessor.getContourfeatures(querypath);
+			features.set(query);
 		}
-		IndexNode indexNode = indexNodeDao.findById(id);
+		SiftNode indexNode = siftIndexNodeDao.findById(id);
 		if(indexNode.getSize()<=2*number) return indexNode.getImagenames();
-		IndexNode left =indexNodeDao.findById(indexNode.getLeftchild());
-		IndexNode right = indexNodeDao.findById(indexNode.getRightchild());
-		String leftcenname = left.getHsvfeatures();
-		String rightcenname = right.getHsvfeatures();
+		SiftNode left =siftIndexNodeDao.findById(indexNode.getLeftchild());
+		SiftNode right = siftIndexNodeDao.findById(indexNode.getRightchild());
+		String leftcenname = left.getFeatures();
+		String rightcenname = right.getFeatures();
 		try {		
 			
 			double[] leftcen = null;
@@ -94,15 +91,15 @@ public class HSVBinaryTreeImpl implements TreeBuilder {
 		}catch(Exception e){
 			e.printStackTrace();
 		}finally {
-			HSVfeatures.remove();
+			features.remove();
 		}
 		return indexNode.getImagenames();
 	} 
 	private void build(String val, double[][] input, String[] names, double[] centroids) {
 		ObjectMapper mapper = new ObjectMapper();
 		try {
-			mapper.writeValue(new File("./resource/HSV/"+String.valueOf(val)+".centroids"), centroids);
-			mapper.writeValue(new File("./resource/hSV/"+String.valueOf(val)+".names"), names);
+			mapper.writeValue(new File("./resource/Sift/"+String.valueOf(val)+".centroids"), centroids);
+			mapper.writeValue(new File("./resource/Sift/"+String.valueOf(val)+".names"), names);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -116,7 +113,7 @@ public class HSVBinaryTreeImpl implements TreeBuilder {
 		level.put(Integer.parseInt(val.split("\\.")[0])+1, levelnumber1);
 		int levelnumber2 = level.getOrDefault(Integer.parseInt(val.split("\\.")[0])+1, 0)+1;
 		level.put(Integer.parseInt(val.split("\\.")[0])+1, levelnumber2);
-		indexNodeDao.saveIndexNode(new IndexNode(val, "./resource/HSV/"+String.valueOf(val)+".centroids", "./resource/HSV/"+String.valueOf(val)+".names", names.length, 
+		siftIndexNodeDao.saveSiftNode(new SiftNode(val, "./resource/Sift/"+String.valueOf(val)+".centroids", "./resource/Sift/"+String.valueOf(val)+".names", names.length, 
 									String.valueOf(Integer.parseInt(val.split("\\.")[0])+1)+"."+levelnumber1, 
 									String.valueOf(Integer.parseInt(val.split("\\.")[0])+1)+"."+levelnumber2));
 		if(input.length<=3) {
@@ -144,6 +141,7 @@ public class HSVBinaryTreeImpl implements TreeBuilder {
 		}
 		double[] leftcen = kMeans.centroids()[0];
 		double[] rightcen = kMeans.centroids()[1];
+		if(rightnames.length==0 || leftnames.length==0) return;
 		build(String.valueOf(Integer.parseInt(val.split("\\.")[0])+1)+"."+levelnumber1,rightinput, rightnames, leftcen);
 		build(String.valueOf(Integer.parseInt(val.split("\\.")[0])+1)+"."+levelnumber2, leftinput, leftnames, rightcen);
 	}

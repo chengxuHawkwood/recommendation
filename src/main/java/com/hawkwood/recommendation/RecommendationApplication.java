@@ -9,24 +9,24 @@ import com.hawkwood.recommendation.util.ImageProcessor;
 import com.hawkwood.recommendation.util.ImageProcessorLowlevelImpl;
 import com.hawkwood.recommendation.util.TreeBuilder;
 
-import nu.pattern.OpenCV;
 
 
 
 @SpringBootApplication
 @EnableCaching
 public class RecommendationApplication {
-
 	public static void main(String[] args) {
+		System.load("/Users/hawkwood/Downloads/opencv-4.0.1/build/lib/libopencv_java401.dylib");
 		ConfigurableApplicationContext context = SpringApplication.run(RecommendationApplication.class, args);
-		System.out.println(System.getProperty("java.library.path"));
 		Thread thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				// TODO Auto-generated method stub			
-				OpenCV.loadShared();
-				TreeBuilder tb = (TreeBuilder) context.getBean("HSVBinaryTreeImpl");
+				TreeBuilder tb = (TreeBuilder) context.getBean("siftBinaryTreeImpl");
+				tb.BuildTree("/Users/hawkwood/Downloads/style-color-images/style/");				
+				tb = (TreeBuilder) context.getBean("HSVBinaryTreeImpl");
 				tb.BuildTree("/Users/hawkwood/Downloads/style-color-images/style/");
+
 			}
 		});
 		thread.start();

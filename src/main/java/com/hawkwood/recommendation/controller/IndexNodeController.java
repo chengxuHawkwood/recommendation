@@ -20,7 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hawkwood.recommendation.util.HSVBinaryTreeImpl;
 import com.hawkwood.recommendation.util.ImageProcessor;
 import com.hawkwood.recommendation.util.SiftBinaryTreeImpl;
-
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 @Controller
 public class IndexNodeController {
@@ -61,6 +64,7 @@ public class IndexNodeController {
 		try {
 			String[] names = objectMapper.readValue(new File(namepath), String[].class);
 			for (int i=0;i<names.length;i++) {
+
 				names[i] = names[i].replace("/Users/hawkwood/Downloads/style-color-images", "/images");
 			} 
 			theModel.addAttribute("names",names);
@@ -76,8 +80,47 @@ public class IndexNodeController {
 		}
 		return "querycontour";
 	}
-	
-	
+	@RequestMapping("/querydl")
+	public String querydl(@RequestParam(name="path") String path, Model theModel) throws InterruptedException{
+		String namepath =  path.replace("/images","/Users/hawkwood/Downloads/style-color-images");
+		try {
+			Process proc;
+			proc = Runtime.getRuntime().exec("python /Users/hawkwood/PycharmProjects/styleclassification/recommendation_Online.py "+namepath);
+			BufferedReader in = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+			String line = null;
+			String[] names = new String[10];
+			int index = 0;
+			while ((line = in.readLine()) != null && index<=10) {
+				if(index>=1)  names[index-1] = line.replace("/Users/hawkwood/Downloads/style-color-images", "/images");
+				index++;
+
+			}
+			in.close();
+
+			proc.waitFor();
+			theModel.addAttribute("names",names);
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+
+		return "querydl";
+	}
+	@RequestMapping("/dlfeature")
+	public String dlfeature(Model theModel){
+		List<String> paths = ImageProcessor.imageNames("/Users/hawkwood/Downloads/style-color-images/style/");
+		List<String> show = new ArrayList<>();
+		for(int i=0;i<10;i++) {
+			int index = (int) (Math.random()* paths.size());
+			show.add(paths.get(index).replace("/Users/hawkwood/Downloads/style-color-images", "/images"));
+		}
+		theModel.addAttribute("show", show);
+		return "dlfeature";
+	}
+
 	@RequestMapping("/query")
 	public String query(@RequestParam(name="path") String path, Model theModel){
 		String namepath = HSVBinaryTreeImpl.QueryPictures("1.1", 8, path.replace("/images","/Users/hawkwood/Downloads/style-color-images"), null);

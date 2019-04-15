@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import smile.math.DoubleArrayList;
-import weka.filters.unsupervised.attribute.Normalize;
+
 @Service
 public class ImageProcessorLowlevelImpl implements ImageProcessor{
 	

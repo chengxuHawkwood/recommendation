@@ -10,7 +10,6 @@ import com.hawkwood.recommendation.util.ImageProcessorLowlevelImpl;
 
 //import nu.pattern.OpenCV;
 import smile.clustering.KMeans;
-import weka.core.mathematicalexpression.sym;
 
 public class TestImageProcessor {
 public static void main(String[] args) {

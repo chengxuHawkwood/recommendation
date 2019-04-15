@@ -18,18 +18,18 @@ public class RecommendationApplication {
 	public static void main(String[] args) {
 		System.load("/Users/hawkwood/Downloads/opencv-4.0.1/build/lib/libopencv_java401.dylib");
 		ConfigurableApplicationContext context = SpringApplication.run(RecommendationApplication.class, args);
-		Thread thread = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				// TODO Auto-generated method stub			
-				TreeBuilder tb = (TreeBuilder) context.getBean("siftBinaryTreeImpl");
-				tb.BuildTree("/Users/hawkwood/Downloads/style-color-images/style/");				
-				tb = (TreeBuilder) context.getBean("HSVBinaryTreeImpl");
-				tb.BuildTree("/Users/hawkwood/Downloads/style-color-images/style/");
-
-			}
-		});
-		thread.start();
+//		Thread thread = new Thread(new Runnable() {
+//			@Override
+//			public void run() {
+//				// TODO Auto-generated method stub
+//				TreeBuilder tb = (TreeBuilder) context.getBean("siftBinaryTreeImpl");
+//				tb.BuildTree("/Users/hawkwood/Downloads/style-color-images/style/");
+//				tb = (TreeBuilder) context.getBean("HSVBinaryTreeImpl");
+//				tb.BuildTree("/Users/hawkwood/Downloads/style-color-images/style/");
+//
+//			}
+//		});
+//		thread.start();
 
 	}
 

@@ -15,7 +15,7 @@ public class TestHighConcurrency {
 					// TODO Auto-generated method stub
 					try {
 					      StringBuilder result = new StringBuilder();
-					      URL url = new URL("http://127.0.0.1:8080/query?path=/images/style/6_8_026.png");
+					      URL url = new URL("http://127.0.0.1:8080/querydl?path=/images/style/4_4_026.png");
 					      HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 					      conn.setRequestMethod("GET");
 					      BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));

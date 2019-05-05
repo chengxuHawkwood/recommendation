@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-	<meta charset="UTF-8">
-	<title>Insert title here</title>
+<meta charset="UTF-8">
+<title>Insert title here</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -14,18 +14,18 @@
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
-<h1>Select A picture and the system will recommend similar results</h1>
-<table>
+
+	<table>
 	<tr>
 		<td th:each="img : ${names}">
 			<img th:src=@{${img}}/>
 		</td>
 	</tr>
-</table>
-<div align="center">
-	<a href="/hsv"}><button  class="btn btn-primary btn-lg btn-block">Continue engine based on HSV histograms</button></a>
-	<a href="/contour"}><button  class="btn btn-success btn-lg btn-block">Switch engine based on SIFT</button></a>
-	<a href="/dlfeature"><button  class="btn btn-danger btn-lg btn-block">Switch engine based on deep learning(vgg16) features</button></a>
-</div>
+	</table>
+	<div align="center">
+		<a href="/hsv"}><button  class="btn btn-primary btn-lg btn-block">Switch engine based on HSV histograms</button></a>
+		<a href="/contour"}><button  class="btn btn-success btn-lg btn-block">Switch engine based on SIFT</button></a>
+		<a href="/dlfeature"><button  class="btn btn-danger btn-lg btn-block">Continue engine based on deep learning(vgg16) features</button></a>
+	</div>
 </body>
 </html>

@@ -7,7 +7,7 @@ import java.net.URL;
 
 public class TestHighConcurrency {
 	public static void main(String[] args) {
-		for(int i=0;i<10000000;i++) {
+		for(int i=0;i<1000;i++) {
 			Thread thread = new Thread(new Runnable() {
 				
 				@Override
@@ -15,7 +15,7 @@ public class TestHighConcurrency {
 					// TODO Auto-generated method stub
 					try {
 					      StringBuilder result = new StringBuilder();
-					      URL url = new URL("http://127.0.0.1:8080/querydl?path=/images/style/4_4_026.png");
+					      URL url = new URL("http://127.0.0.1:8080/query?path=/images/style/3_6_046.png");
 					      HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 					      conn.setRequestMethod("GET");
 					      BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -31,6 +31,7 @@ public class TestHighConcurrency {
 
 				}
 			});
+			thread.start();
 
 		}
 		System.out.println("successfully");

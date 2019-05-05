@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<link ref = "stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" />
+</head>
+<body>
+<h1>Select A picture and the system will recommend similar results</h1>
+	<table>
+	<tr>
+		<td th:each="img : ${show}">
+			<a th:href="@{/querydl(path=${img})}"><img th:src=@{${img}}/></a>
+		</td>
+	</tr>
+	</table>
+</body>
+</html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-	<meta charset="UTF-8">
+<meta charset="UTF-8">
 	<title>Insert title here</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -17,15 +17,11 @@
 <h1>Select A picture and the system will recommend similar results</h1>
 <table>
 	<tr>
-		<td th:each="img : ${names}">
-			<img th:src=@{${img}}/>
+		<td th:each="img : ${show}">
+			<a th:href="@{/query(path=${img})}"><img th:src=@{${img}}/></a>
 		</td>
 	</tr>
-</table>
-<div align="center">
-	<a href="/hsv"}><button  class="btn btn-primary btn-lg btn-block">Continue engine based on HSV histograms</button></a>
-	<a href="/contour"}><button  class="btn btn-success btn-lg btn-block">Switch engine based on SIFT</button></a>
-	<a href="/dlfeature"><button  class="btn btn-danger btn-lg btn-block">Switch engine based on deep learning(vgg16) features</button></a>
-</div>
+	</table>
+
 </body>
 </html>
